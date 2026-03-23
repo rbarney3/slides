@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Simple Slides</title>
+<title>Kid Slides</title>
 
 <style>
 body { margin:0; font-family:sans-serif; }
@@ -31,9 +31,7 @@ button {
   cursor:pointer;
 }
 
-.active {
-  border:3px solid blue;
-}
+.active { border:3px solid blue; }
 
 #stage {
   width:100%;
@@ -51,8 +49,16 @@ canvas {
 
 .obj {
   position:absolute;
-  font-size:40px;
   cursor:grab;
+}
+
+/* TEXT BOX */
+.textbox {
+  font-size:24px;
+  padding:5px;
+  border:2px solid black;
+  background:white;
+  min-width:80px;
 }
 </style>
 </head>
@@ -62,7 +68,7 @@ canvas {
 <div id="topbar">
   <button onclick="addSlide()">➕ Slide</button>
   <button onclick="addEmoji()">😀 Emoji</button>
-  <button onclick="addLetter()">🔤 Letter</button>
+  <button onclick="addText()">🔤 Text</button>
   <button onclick="tool='draw'">✏️ Draw</button>
   <button onclick="tool='erase'">🧽 Erase</button>
   <button onclick="clearSlide()">🧹 Clear</button>
@@ -83,6 +89,7 @@ const canvas = document.getElementById("c");
 const ctx = canvas.getContext("2d");
 const stage = document.getElementById("stage");
 
+// Resize
 function resize(){
   canvas.width = stage.clientWidth;
   canvas.height = stage.clientHeight;
@@ -90,7 +97,7 @@ function resize(){
 resize();
 window.addEventListener("resize", resize);
 
-// DRAWING (super simple + reliable)
+// DRAW
 let drawing = false;
 
 canvas.addEventListener("pointerdown", e=>{
@@ -115,15 +122,23 @@ function draw(e){
   ctx.fill();
 }
 
-// OBJECTS
-function addEmoji(){
-  const list = ["😀","🐶","🚀","🍎","⭐"];
-  createObj(list[Math.floor(Math.random()*list.length)]);
+// ADD TEXT (FULL WORDS)
+function addText(){
+  const input = document.createElement("input");
+  input.className = "obj textbox";
+  input.placeholder = "type here";
+  input.style.left = "100px";
+  input.style.top = "100px";
+
+  input.onpointerdown = startDrag;
+
+  stage.appendChild(input);
 }
 
-function addLetter(){
-  const letter = prompt("Type a letter:");
-  if(letter) createObj(letter[0]);
+// EMOJI
+function addEmoji(){
+  const list = ["🐶","🐱","🦁","🐸","🐵","🐼"];
+  createObj(list[Math.floor(Math.random()*list.length)]);
 }
 
 function createObj(text){
@@ -132,13 +147,11 @@ function createObj(text){
   d.textContent=text;
   d.style.left="100px";
   d.style.top="100px";
-
   d.onpointerdown = startDrag;
-
   stage.appendChild(d);
 }
 
-// DRAG (pointer events = works on iPad + mouse)
+// DRAG
 function startDrag(e){
   const el = e.target;
 
@@ -177,7 +190,7 @@ function renderSlides(){
     btn.textContent = i+1;
 
     btn.onclick = ()=>{
-      saveSlide();
+      saveSlide(); // ✅ AUTO SAVE
       current = i;
       renderSlides();
       loadSlide();
@@ -187,19 +200,31 @@ function renderSlides(){
   });
 }
 
+// SAVE EVERYTHING
 function saveSlide(){
   slides[current].img = canvas.toDataURL();
   slides[current].objs = [];
 
   document.querySelectorAll(".obj").forEach(o=>{
-    slides[current].objs.push({
-      text:o.textContent,
-      x:o.offsetLeft,
-      y:o.offsetTop
-    });
+    if(o.tagName === "INPUT"){
+      slides[current].objs.push({
+        type:"text",
+        value:o.value,
+        x:o.offsetLeft,
+        y:o.offsetTop
+      });
+    } else {
+      slides[current].objs.push({
+        type:"emoji",
+        value:o.textContent,
+        x:o.offsetLeft,
+        y:o.offsetTop
+      });
+    }
   });
 }
 
+// LOAD
 function loadSlide(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
   document.querySelectorAll(".obj").forEach(o=>o.remove());
@@ -213,20 +238,31 @@ function loadSlide(){
   }
 
   s.objs.forEach(o=>{
-    const d = document.createElement("div");
-    d.className="obj";
-    d.textContent=o.text;
-    d.style.left=o.x+"px";
-    d.style.top=o.y+"px";
-    d.onpointerdown=startDrag;
-    stage.appendChild(d);
+    if(o.type==="text"){
+      const input = document.createElement("input");
+      input.className="obj textbox";
+      input.value=o.value;
+      input.style.left=o.x+"px";
+      input.style.top=o.y+"px";
+      input.onpointerdown=startDrag;
+      stage.appendChild(input);
+    } else {
+      const d=document.createElement("div");
+      d.className="obj";
+      d.textContent=o.value;
+      d.style.left=o.x+"px";
+      d.style.top=o.y+"px";
+      d.onpointerdown=startDrag;
+      stage.appendChild(d);
+    }
   });
 }
 
+// CLEAR
 function clearSlide(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
   document.querySelectorAll(".obj").forEach(o=>o.remove());
-  slides[current] = {img:null, objs:[]};
+  slides[current]={img:null,objs:[]};
 }
 
 // START
