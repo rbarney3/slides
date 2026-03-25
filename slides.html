@@ -5,8 +5,13 @@
 <title>Kid Slides</title>
 
 <style>
-body { margin:0; font-family:sans-serif; }
+html, body {
+  margin:0;
+  font-family:sans-serif;
+  overscroll-behavior:none;
+}
 
+/* TOP BAR */
 #topbar {
   background:#4a6cff;
   padding:10px;
@@ -18,7 +23,18 @@ button {
   padding:10px;
 }
 
-/* BIG emoji picker */
+/* COLOR BUTTONS */
+.colorBtn {
+  width:30px;
+  height:30px;
+  display:inline-block;
+  margin:5px;
+  border-radius:50%;
+  border:2px solid black;
+  cursor:pointer;
+}
+
+/* EMOJI PICKER */
 #emojiPicker {
   display:flex;
   flex-wrap:wrap;
@@ -32,17 +48,7 @@ button {
   cursor:pointer;
 }
 
-/* Color buttons */
-.colorBtn {
-  width:30px;
-  height:30px;
-  display:inline-block;
-  margin:5px;
-  border-radius:50%;
-  border:2px solid black;
-  cursor:pointer;
-}
-
+/* SLIDES */
 #slides {
   display:flex;
   background:#ddd;
@@ -57,8 +63,11 @@ button {
   cursor:pointer;
 }
 
-.active { border:3px solid blue; }
+.active {
+  border:3px solid blue;
+}
 
+/* STAGE */
 #stage {
   width:100%;
   height:70vh;
@@ -73,18 +82,20 @@ canvas {
   left:0;
 }
 
+/* OBJECTS */
 .obj {
   position:absolute;
   cursor:grab;
 }
 
-/* TEXT BOX FIXED */
+/* TEXT BOX (ZOOM SAFE) */
 .textbox {
-  font-size:20px;
+  font-size:18px;
   padding:8px;
   border:2px solid black;
   background:white;
   min-width:100px;
+  transform:scale(1);
 }
 </style>
 </head>
@@ -98,7 +109,7 @@ canvas {
   <button onclick="tool='erase'">🧽</button>
   <button onclick="clearSlide()">🧹</button>
 
-  <!-- Colors -->
+  <!-- COLORS -->
   <div>
     <span class="colorBtn" style="background:black" onclick="setColor('black')"></span>
     <span class="colorBtn" style="background:red" onclick="setColor('red')"></span>
@@ -108,16 +119,42 @@ canvas {
   </div>
 </div>
 
-<!-- Emoji Picker -->
+<!-- EMOJIS -->
 <div id="emojiPicker"></div>
 
+<!-- SLIDES -->
 <div id="slides"></div>
 
+<!-- DRAW AREA -->
 <div id="stage">
   <canvas id="c"></canvas>
 </div>
 
 <script>
+// 🚫 BLOCK ALL ZOOM (Chromebook + iPad)
+
+// Ctrl + scroll zoom
+window.addEventListener("wheel", function(e){
+  if(e.ctrlKey) e.preventDefault();
+}, { passive:false });
+
+// Pinch zoom
+window.addEventListener("touchmove", function(e){
+  if(e.scale !== 1) e.preventDefault();
+}, { passive:false });
+
+// Double tap zoom
+let lastTouchEnd = 0;
+document.addEventListener("touchend", function(e){
+  let now = new Date().getTime();
+  if(now - lastTouchEnd <= 300){
+    e.preventDefault();
+  }
+  lastTouchEnd = now;
+}, false);
+
+// -------------------
+
 let slides = [];
 let current = 0;
 let tool = "draw";
@@ -127,7 +164,7 @@ const canvas = document.getElementById("c");
 const ctx = canvas.getContext("2d");
 const stage = document.getElementById("stage");
 
-// Resize
+// Resize canvas
 function resize(){
   canvas.width = stage.clientWidth;
   canvas.height = stage.clientHeight;
@@ -176,9 +213,8 @@ function addText(){
   stage.appendChild(input);
 }
 
-// EMOJI PICKER
+// EMOJIS
 const emojiList = ["🐶","🐱","🦁","🐸","🐵","🐼","🦊","🐷","🐰","🐨","🦄","🐙"];
-
 const picker = document.getElementById("emojiPicker");
 
 emojiList.forEach(e=>{
